@@ -30,6 +30,12 @@
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{gt-letterhead}[2021/12/05 v0.1 GT Letterhead]
 
+% allow inclusion of PDF 1.6 logo assets when compiling with pdfLaTeX
+\RequirePackage{iftex}
+\ifPDFTeX
+  \pdfminorversion=6
+\fi
+
 % options
 \providecommand\logofile{assets/gt.pdf}
 
@@ -64,13 +70,13 @@
 \ProcessOptions\relax
 
 
-\DeclareRobustCommand{\fromdate}[1]{\DeclareRobustCommand\@fromdate{#1}}
-\DeclareRobustCommand{\fromdept}[1]{\DeclareRobustCommand\@fromdept{#1}}
-\DeclareRobustCommand{\fromname}[1]{\DeclareRobustCommand\@fromname{#1 \\}}
-\DeclareRobustCommand{\fromemail}[1]{\DeclareRobustCommand\@fromemail{#1 \\}}
-\DeclareRobustCommand{\fromweb}[1]{\DeclareRobustCommand\@fromweb{#1}}
+\newcommand{\fromdate}[1]{\def\@fromdate{#1}}
+\newcommand{\fromdept}[1]{\def\@fromdept{#1}}
+\newcommand{\fromname}[1]{\def\@fromname{#1}}
+\newcommand{\fromemail}[1]{\def\@fromemail{#1}}
+\newcommand{\fromweb}[1]{\def\@fromweb{#1}}
 \newcommand{\toaddress}[1]{\def\@toaddress{#1}}
-\DeclareRobustCommand{\closing}[1]{\DeclareRobustCommand\@closing{#1}}
+\newcommand{\closing}[1]{\def\@closing{#1}}
 \newcommand{\signaturefile}[1]{\def\@signaturefile{#1}}
 \newcommand{\aboutme}[1]{\def\@aboutme{#1}}
 
@@ -91,6 +97,15 @@
 
 % ifstrempty
 \RequirePackage{etoolbox}
+\newif\ifgt@printedcontact
+\newcommand{\gt@contactline}[1]{%
+  \ifx#1\@empty
+  \else
+    \ifgt@printedcontact\\\fi
+    #1%
+    \gt@printedcontacttrue
+  \fi
+}
 
 % set page geometry
 \RequirePackage[top=1.75in,left=1.75in,bottom=2in,right=1.0in,headheight=17pt]{geometry}
@@ -173,17 +188,22 @@
 % add closing to end of the document, if sig is available
 \AtEndDocument{%
     \par\vspace{2ex}
+    \setlength{\parskip}{0pt}
     \sbox0{\@closing}%
     \ifdim\wd0=0pt
     \else
-       \@closing,
+       \@closing,\par
     \fi
 
-    \ifthenelse{\equal{\@signaturefile}{}}{\bigskip\bigskip}{\includegraphics[width=1.2in]{\@signaturefile}\\[-0.2\baselineskip]}
-
-    \@fromname%
-    \@fromemail%
-    \@fromweb%
+    \ifthenelse{\equal{\@signaturefile}{}}{%
+      \gt@printedcontactfalse
+    }{%
+      \noindent\includegraphics[width=1.2in]{\@signaturefile}\\[-0.8\baselineskip]%
+      \gt@printedcontactfalse
+    }%
+    \gt@contactline\@fromname
+    \gt@contactline\@fromemail
+    \gt@contactline\@fromweb
 
     \ifthenelse{\equal{\@aboutme}{}}{}{{\small \textit{About the letter writer:} \@aboutme}}
 }
